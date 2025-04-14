@@ -1,0 +1,58 @@
+
+df = pd.DataFrame()
+
+all_links_extends = []
+for i in range(len(os.listdir("pages"))):
+    with open(f"pages\\pagina_zapimoveis_page{i + 1}.html", "r", encoding="utf-8") as f:
+        soup = BeautifulSoup(f, 'html.parser')
+        links_tag_a = [a['href'] for a in soup.find_all('a', href=True)
+                if a['href'].startswith("https://www.zapimoveis.com.br/imovel/")]
+
+        script_links = []
+        for script in soup.find_all("script"):
+            if script.string:
+                found = re.findall(r"https://www\.zapimoveis\.com\.br/imovel/[^\s\"']+", script.string)
+                script_links.extend(found)
+
+        all_links = list(set(links_tag_a + script_links))
+        all_links_extends.extend(all_links)
+        
+
+all_links_extends = list(set(all_links_extends))
+
+for url in all_links_extends:
+    try:
+        driver = webdriver.Chrome()
+        driver.get(url)
+        sleep(5)
+        
+        elements = driver.find_elements(By.CLASS_NAME, "amenities-item-text")
+        preço = driver.find_elements(By.CLASS_NAME, "price-info-value")
+        endereço = driver.find_elements(By.CLASS_NAME, "address-info-value")
+        descricao = driver.find_elements(By.CLASS_NAME, "description__content--text")
+        property_data = {"Link": url}
+        
+        for element in elements:
+            text = element.text.lower().strip()
+            
+            if "m²" in text or "m2" in text or "metros quadrados" in text:
+                property_data["Área"] = re.search(r'\d+', text).group() if re.search(r'\d+', text) else None
+            elif "quartos" in text or "quarto" in text:
+                property_data["Quartos"] = re.search(r'\d+', text).group() if re.search(r'\d+', text) else None
+            elif "banheiros" in text or "banheiro" in text:
+                property_data["Banheiros"] = re.search(r'\d+', text).group() if re.search(r'\d+', text) else None
+            elif "vagas" in text or "vaga" in text:
+                property_data["Vagas"] = re.search(r'\d+', text).group() if re.search(r'\d+', text) else None
+            elif "suítes" in text or "suites" in text or "suíte" in text or "suíte" in text:
+                property_data["Suítes"] = re.search(r'\d+', text).group() if re.search(r'\d+', text) else None
+        
+        property_data["Valor"] = preço[0].text if preço else None
+        property_data["Endereço"] = endereço[0].text if endereço else None
+        property_data["Descrição"] = descricao[0].text if descricao else None
+        
+        df = pd.concat([df, pd.DataFrame([property_data])], ignore_index=True)
+    except Exception as e:
+        print(f"Error processing {url}: {str(e)}")
+    finally:
+        driver.quit()
+        df.head(10)
