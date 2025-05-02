@@ -11,13 +11,17 @@ import time
 
 dotenv.load_dotenv()
 
-login_usuario_inspectos = os.getenv('LOGIN_INSPECTOS')
-login_senha_inspectos = os.getenv('SENHA_INSPECTOS')
+login_usuario_inspectos = os.getenv('INSPECTOS_EMAIL')
+login_senha_inspectos = os.getenv('INSPECTOS_SENHA')
+
 login_usuario_uono_relatorio = os.getenv('WEBMAIL_RELATORIOS_LOGIN')
 login_senha_uono_relatorio = os.getenv('WEBMAIL_RELATORIOS_SENHA')
 
 options = webdriver.ChromeOptions()
-options.add_argument("--headless")
+
+db_inspectos = pd.read_excel(r'databases\INSPECTOS.xls')
+
+# print(db_inspectos)
 
 def acessa_email():
     """_Captura o codigo da B4 no email 'webmail'_
@@ -91,9 +95,35 @@ def busca_inspectos():
             }
         else:
             raise ValueError("Código recebido é muito curto.")
-
+        
+        for xpath, value in codigos_.items():
+            try:
+                elemento_input_codigo = wait.until(EC.visibility_of_element_located((By.XPATH, xpath)))
+                elemento_input_codigo.clear()  # Limpa o campo antes de inserir o valor
+                elemento_input_codigo.send_keys(value)
+            except Exception as e:
+                print(f"Erro ao processar o elemento {xpath}: {e}")
+        enviar = wait.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div/div/div/div/div/div[4]/div[2]/div/div/div/div[2]/form/button')))
+        enviar.click()
+        
+        for i, row in db_inspectos.iterrows():
+            input_codigo = wait.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div/div[2]/div[4]/div[2]/div/div[2]/div/div/div/div/div[2]/div/div/form/div/div[1]/div[1]/div[2]/input')))
+            input_codigo.clear()
+            input_codigo.send_keys(row['Identificador'])
+            time.sleep(1)
+            submit_button = wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div/div[2]/div[4]/div[2]/div/div[2]/div/div/div/div/div[2]/div/div/form/div/div[2]/div[1]/div/div[2]/button[2]')))
+            submit_button.click()
+            time.sleep(1)
+            grid = wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div/div[2]/div[4]/div[2]/div/div[2]/div/div/div/div/div[3]/div/div/ul/li[2]/a')))
+            grid.click()
+            time.sleep(1)
+            
     except Exception as e:
         print(f"Ocorreu um erro {e}")
 
     finally:
         driver.quit()
+
+
+if __name__ == "__main__":
+    busca_inspectos()

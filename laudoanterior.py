@@ -1,6 +1,7 @@
 import pyautogui
 import pandas as pd
 import os
+from pyautogui import ImageNotFoundException
 import time
 
 def wait_for_image(image_path, timeout=30, confidence=0.9):
@@ -30,7 +31,7 @@ for docid in lista:
     
     pyautogui.click(pyautogui.center(pesquisa))
 
-    pyautogui.write(docid)
+    pyautogui.write(str(docid))
     
     buscar = wait_for_image('cetip\\buscar.png')
     pyautogui.click(pyautogui.center(buscar))
@@ -43,35 +44,19 @@ for docid in lista:
             pyautogui.moveTo(x_click, y_click)
             pyautogui.click()
             print('cliquei no docid')
-            try:
-                
-                arquivos = pyautogui.locateOnScreen('cetip\\arquivos.png', confidence=0.9)
-            except Exception as e:
-                print('Cliquei em outra pos:', e)
-                x_atual, y_atual = pyautogui.position()
-                novo_y = y_atual + 18
-                pyautogui.moveTo(x_atual, novo_y)
-                pyautogui.click()
-                
-    except Exception as e:
-        print('Erro ao localizar o DocID:', e)
-        arquivos = wait_for_image('cetip\\arquivos.png')
-        if pyautogui.click(pyautogui.center(arquivos)):
-            x_atual, y_atual = pyautogui.position()
-
-            novo_y = y_atual + 12
-            pyautogui.moveTo(x_atual, novo_y)
-            pyautogui.click()
-
-    try:
+        pyautogui.hotkey('f5')
         time.sleep(9)
         laudo = wait_for_image('cetip\\laudo_mais_recente.png')
         pyautogui.click(pyautogui.center(laudo))
         print('cliquei no laudo mais recente')
-        time.sleep(10)
-        download = wait_for_image('cetip\\download.png')
-        pyautogui.click(pyautogui.center(download))
-        print('cliquei no download')
+        try:
+            time.sleep(10)
+            download = pyautogui.click(pyautogui.center(pyautogui.locateOnScreen('cetip\\download.png', confidence=0.9)))
+            print('cliquei no download')
+        except ImageNotFoundException as e:
+            time.sleep(3)
+            download = pyautogui.click(pyautogui.center(pyautogui.locateOnScreen('cetip\\download2.png', confidence=0.9)))
+            print('cliquei no download')
         time.sleep(4)
         pyautogui.hotkey('enter')
         print('salvei o laudo')
@@ -87,7 +72,7 @@ for docid in lista:
         time.sleep(5)
         pyautogui.hotkey('ctrl', 'tab')
         time.sleep(3)
-    except Exception as e:
+    except ImageNotFoundException as e:
         print('Erro ao localizar o laudo:', e)
         pyautogui.hotkey('ctrl', 'w')
         time.sleep(5)
